@@ -51,13 +51,7 @@ docs/_build/
 
 # temp files
 test.py
-test2.py
-test3.py
-test4.py
-test.ipynb
 
 # data, keys, and notebooks
 data/
-api_keys/
-notebooks/
 models/
