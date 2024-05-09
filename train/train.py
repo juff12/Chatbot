@@ -33,9 +33,9 @@ def args():
 
     # training Parameters
     parser.add_argument("--output_dir", type=str, default="output/chatbot/streamers/test/results", help="Output directory where the model predictions and checkpoints will be stored")
-    parser.add_argument("--num_train_epochs", type=int, default=4, help="Number of training epochs")
+    parser.add_argument("--num_train_epochs", type=int, default=1, help="Number of training epochs")
     parser.add_argument("--fp16", type=bool, default=False, help="Enable fp16 training (set bf16 to True with an A100)")
-    parser.add_argument("--bf16", type=bool, default=False, help="Enable bf16 training (set bf16 to True with an A100)")
+    parser.add_argument("--bf16", type=bool, default=True, help="Enable bf16 training (set bf16 to True with an A100)")
     parser.add_argument("--per_device_train_batch_size", type=int, default=4, help="Batch size per GPU for training")
     parser.add_argument("--per_device_eval_batch_size", type=int, default=4, help="Batch size per GPU for evaluation")
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1, help="Number of update steps to accumulate the gradients for")
