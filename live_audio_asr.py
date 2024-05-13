@@ -71,6 +71,10 @@ def main():
         # convert to text
         audio_text = transcriber(args.output_file)['text']
 
+        # if the repsonse is too short, skip
+        if len(audio_text) < 5:
+            continue
+
         # interact with chatbot
         response = chatbot.generate(audio_text)
 
