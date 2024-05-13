@@ -23,7 +23,7 @@ class Chatbot():
         self.pipe = self.build_pipeline()
 
     def _create_bnb_config(self):
-        bnb_config = BitsAndBytesConfig.from_pretrained(
+        bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_quant_type='nf4',
             bnb_4bit_compute_dtype=torch.float16,
@@ -32,10 +32,7 @@ class Chatbot():
         return bnb_config
 
     def load_model(self, new_model):
-        model = PeftModel(
-            base_model=self.base_model,
-            new_model=new_model,
-        )
+        model = PeftModel.from_pretrained(self.base_model, new_model)
         model = model.merge_and_unload()
         return model
 
@@ -59,8 +56,7 @@ class Chatbot():
         pipe = pipeline(
             "text-generation",
             model=self.model,
-            tokenizer=self.tokenizer,
-            device=self.device_map,
+            tokenizer=self.tokenizer
         )
         return pipe
 
