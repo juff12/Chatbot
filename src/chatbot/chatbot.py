@@ -10,22 +10,26 @@ from transformers import (
 )
 
 class Chatbot():
-    def __init__(self, base_model, new_model, device='cuda:0'):
+    def __init__(self, base_model, new_model, device='cuda:0', format='llama'):
         # ignore warnings
         logging.set_verbosity(logging.ERROR)
-        
+    
+        self.prompt_format = format
         self.device_map = device
-        
-        self.bnb_config = BitsAndBytesConfig.from_pretrained(
+        self.bnb_config = self._create_bnb_config()
+        self.base_model = self.load_base(base_model)
+        self.tokenizer = self.load_tokenizer(base_model)
+        self.model = self.load_model(new_model)
+        self.pipe = self.build_pipeline()
+
+    def _create_bnb_config(self):
+        bnb_config = BitsAndBytesConfig.from_pretrained(
             load_in_4bit=True,
             bnb_4bit_quant_type='nf4',
             bnb_4bit_compute_dtype=torch.float16,
             bnb_4bit_use_double_quant=False,
         )
-        self.base_model = self.load_base(base_model)
-        self.tokenizer = self.load_tokenizer(base_model)
-        self.model = self.load_model(new_model)
-        self.pipe = self.build_pipeline()
+        return bnb_config
 
     def load_model(self, new_model):
         model = PeftModel(
@@ -60,9 +64,9 @@ class Chatbot():
         )
         return pipe
 
-    def generate(self, prompt, format='llama'):
+    def generate(self, prompt):
         # format the prompt
-        prompt = self.format_prompt(prompt, format)
+        prompt = self.format_prompt(prompt)
         # generate the response
         result = self.pipe(
             prompt,
@@ -74,7 +78,7 @@ class Chatbot():
             num_return_sequences=1,
             no_repeat_ngram_size=1,
         )
-        return self.format_output(result[0]['generated_text'])
+        return self.format_output(prompt, result[0]['generated_text'])
     
     def format_output(self, input, output):
         # remove the input from the output
@@ -84,11 +88,10 @@ class Chatbot():
         output = re.sub(r'[{}()\[\]]', '', output)
         return output.strip()
 
-
-    def format_prompt(self, prompt, format):
+    def format_prompt(self, prompt):
         # format the prompt for llama chatbot
-        if format == 'llama':
+        if self.prompt_format == 'llama':
             return prompt
         # format the prompt for mistral instruct
-        elif format == 'mistral':
+        elif self.prompt_format == 'mistral':
             return f"<s>[INST] {prompt} [/INST]"

@@ -10,15 +10,17 @@ import argparse
 def args():
     parser = argparse.ArgumentParser(description='Live Audio Chatbot')
     parser.add_argument('--message_rate', type=int, default=30, help='The rate at which new messages are sent')
-    parser.add_argument('--model_format', type=str, default='llama', help='The format of the model [llama/mistral]')
+    parser.add_argument('--prompt_format', type=str, default='llama', help='The format of the model [llama/mistral]')
     parser.add_argument('--base_model', type=str, default='NousResearch/Llama-2-7b-hf', help='The base model')
     parser.add_argument('--trained_model', type=str, default='', help='The new model')
     parser.add_argument('--asr_model', type=str, default='openai/whisper-base.en', help='The ASR model to use')
+    parser.add_argument('--freq', type=int, default=44100, help='The frequency of the audio')
+    parser.add_argument('--duration', type=int, default=10, help='The duration of the audio')
 
     return parser.parse_args()
 
-
 def main():
+    # get cli args
     args = args()
 
     # set the device for the transcriber
@@ -32,7 +34,9 @@ def main():
         device=device
     )
 
-    chatbot = Chatbot(args.base_model, args.trained_model, device=device)
+    # initialize the chatbot
+    chatbot = Chatbot(args.base_model, args.trained_model,
+                      device=device, format=args.prompt_format)
 
     # get the '.mkv' file
     input_file = [os.path.join('data/audio', file) for file in os.listdir('data/audio') if file.endswith('.mkv')][0]
@@ -40,7 +44,7 @@ def main():
     temp_file = 'data/audio/temp.wav'
     output_file = 'data/audio/output.wav'
     
-    audio_pipe = AudioPipeline(input_file, temp_file, output_file)
+    audio_pipe = AudioPipeline(input_file, temp_file, output_file, freq=args.freq, duration=args.duration)
 
 
     run_process = True
@@ -61,7 +65,7 @@ def main():
         audio_text = transcriber(output_file)['text']
 
         # interact with chatbot
-        response = chatbot.generate(audio_text, args.model_format)
+        response = chatbot.generate(audio_text)
 
         # example
         print(f"User: {audio_text}")
