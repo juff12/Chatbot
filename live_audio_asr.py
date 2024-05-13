@@ -17,6 +17,11 @@ def args():
     parser.add_argument('--freq', type=int, default=44100, help='The frequency of the audio')
     parser.add_argument('--duration', type=int, default=10, help='The duration of the audio')
 
+    parser.add_argument('--temp_file', type=str, default='data/audio/temp.wav', help='The temp file to hold the wav file while slicing')
+    parser.add_argument('--output_file', type=str, default='data/audio/output.wav', help='The output file to use')
+    parser.add_argument('--input_file', type=str, default='', help='The input file to use [blank is default]')
+
+
     return parser.parse_args()
 
 def main():
@@ -38,13 +43,15 @@ def main():
     chatbot = Chatbot(args.base_model, args.trained_model,
                       device=device, format=args.prompt_format)
 
-    # get the '.mkv' file
-    input_file = [os.path.join('data/audio', file) for file in os.listdir('data/audio') if file.endswith('.mkv')][0]
-    # set the temp and output files
-    temp_file = 'data/audio/temp.wav'
-    output_file = 'data/audio/output.wav'
+    if args.input_file == '':
+        # use the first file in the directory
+        input_file = [os.path.join('data/audio', file) for file in os.listdir('data/audio') if file.endswith('.mkv')][0]
+    else:
+        input_file = args.input_file
+
     
-    audio_pipe = AudioPipeline(input_file, temp_file, output_file, freq=args.freq, duration=args.duration)
+    audio_pipe = AudioPipeline(input_file, args.temp_file, args.output_file,
+                               freq=args.freq, duration=args.duration)
 
 
     run_process = True
@@ -62,7 +69,7 @@ def main():
             continue
 
         # convert to text
-        audio_text = transcriber(output_file)['text']
+        audio_text = transcriber(args.output_file)['text']
 
         # interact with chatbot
         response = chatbot.generate(audio_text)
@@ -84,7 +91,7 @@ def main():
             time.sleep(1)
     
     # remove the output file and the recording file
-    os.remove(output_file)
+    os.remove(args.output_file)
     os.remove(input_file)
 
 if __name__ == "__main__":
