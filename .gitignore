@@ -50,11 +50,7 @@ coverage.xml
 docs/_build/
 
 # temp files
-test.py
-test.ipynb
-test2.py
-interfacing_klv0.ipynb
-interfacing_martin.ipynb
+testing/
 # data, keys, and notebooks
 data/
 models/
