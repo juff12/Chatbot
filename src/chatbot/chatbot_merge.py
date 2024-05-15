@@ -9,7 +9,7 @@ from transformers import (
     logging,
 )
 
-class Chatbot():
+class MergedChatbot():
     def __init__(self, base_model, new_model, device='cuda:0', format='llama'):
         # ignore warnings
         logging.set_verbosity(logging.ERROR)
@@ -17,6 +17,8 @@ class Chatbot():
         self.prompt_format = format
         print('device:', device)
         self.device_map = device
+        print('loading base model')
+        self.base_model = self.load_base(base_model)
         print('loading tokenizer')
         self.tokenizer = self.load_tokenizer(base_model)
         print('loading model')
@@ -34,13 +36,20 @@ class Chatbot():
         return bnb_config
 
     def load_model(self, new_model):
-        model = AutoModelForCausalLM.from_pretrained(
-            new_model,
-            quantization_config=self._create_bnb_config(),
-            device_map=self.device_map,
-            low_cpu_mem_usage=True,
-            torch_dtype=torch.bfloat16,
-        )
+        model = PeftModel.from_pretrained(self.base_model, new_model)
+        model = model.merge_and_unload()
+        return model
+
+    def load_base(self, base_model):
+        try:
+            model = AutoModelForCausalLM.from_pretrained(
+                base_model,
+                quantization_config=self._create_bnb_config(),
+                device_map=self.device_map,
+                torch_dtype=torch.bfloat16,
+            )
+        except Exception as e:
+            print(e)
         model.config.use_cache = False
         model.config.pretraining_tp = 1
         return model
@@ -61,7 +70,7 @@ class Chatbot():
 
     def generate(self, prompt):
         # format the prompt
-        prompt = self.format_prompt(prompt)
+        prompt_f = self.format_prompt(prompt)
         # generate the response
         # decent results
         # result = self.pipe(
@@ -73,17 +82,19 @@ class Chatbot():
         # )
         
         result = self.pipe(
-            prompt,
+            prompt_f,
             do_sample=True,
             temperature=0.9,
             top_p=0.8,
             top_k=10,
-            max_new_tokens=64,
+            max_new_tokens=4000,
             num_return_sequences=1,
-            no_repeat_ngram_size=3,
+            no_repeat_ngram_size=1,
         )
-        
-        return self.format_output(prompt, result[0]['generated_text'])
+        output = self.format_output(prompt_f, result[0]['generated_text'])
+        if output != '':
+            return output
+        return self.generate(prompt)
     
     def format_output(self, input, output):
         # remove the input from the output

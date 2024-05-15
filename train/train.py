@@ -1,4 +1,3 @@
-import os
 import torch
 from datasets import load_dataset
 from transformers import (
@@ -6,8 +5,6 @@ from transformers import (
     AutoTokenizer,
     BitsAndBytesConfig,
     TrainingArguments,
-    pipeline,
-    logging,
 )
 from peft import LoraConfig
 from trl import SFTTrainer
@@ -92,7 +89,7 @@ def main():
 
     # load LLaMA tokenizer
     tokenizer = AutoTokenizer.from_pretrained(opt.model_name, trust_remote_code=True)
-    tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.pad_token = tokenizer.unk_token
     tokenizer.padding_side = "right"
 
     # load the config for QLoRA
