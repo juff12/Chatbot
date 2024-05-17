@@ -51,7 +51,17 @@ docs/_build/
 
 # temp files
 testing/
+interfacing_klv0.ipynb
+interfacing_martin.ipynb
+test.ipynb
+test2.ipynb
+test.py
+test2.py
+test3.py
+get_auth_token.py
+
 # data, keys, and notebooks
 data/
 models/
 api_keys/
+creds/

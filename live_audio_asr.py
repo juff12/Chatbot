@@ -4,10 +4,9 @@ import os
 import time
 import datetime
 import keyboard
-from src.chatbot import Chatbot, AudioPipeline
+from src.chatbot import Chatbot, AudioPipeline, TwitchClient
 import argparse
 from sentence_transformers import SentenceTransformer, util
-
 
 sent_model = SentenceTransformer("all-MiniLM-L6-v2")
 
@@ -15,8 +14,8 @@ def args():
     parser = argparse.ArgumentParser(description='Live Audio Chatbot')
     parser.add_argument('--message_rate', type=int, default=15, help='The rate at which new messages are sent')
     parser.add_argument('--prompt_format', type=str, default='mistral', help='The format of the model [llama/mistral]')
-    parser.add_argument('--base_model', type=str, default='mistralai/Mistral-7B-Instruct-v0.2', help='The base model')
-    parser.add_argument('--trained_model', type=str, default='', help='The new model')
+    parser.add_argument('--tokenizer_name', type=str, default='mistralai/Mistral-7B-Instruct-v0.2', help='The base model')
+    parser.add_argument('--model_name', type=str, default='', help='The new model')
     parser.add_argument('--asr_model', type=str, default='openai/whisper-base.en', help='The ASR model to use')
     parser.add_argument('--freq', type=int, default=44100, help='The frequency of the audio')
     parser.add_argument('--duration', type=int, default=10, help='The duration of the audio')
@@ -24,7 +23,6 @@ def args():
     parser.add_argument('--temp_file', type=str, default='data/audio/temp.wav', help='The temp file to hold the wav file while slicing')
     parser.add_argument('--output_file', type=str, default='data/audio/output.wav', help='The output file to use')
     parser.add_argument('--input_file', type=str, default='', help='The input file to use [blank is default]')
-
 
     return parser.parse_args()
 
@@ -38,7 +36,6 @@ def output_checker(input, output):
     if sim > 0.3:
         return True
     return False
-
 
 def main():
     # get cli args
@@ -56,7 +53,10 @@ def main():
     )
     try:
         # initialize the chatbot
-        chatbot = Chatbot(opt.base_model, opt.trained_model, device, opt.prompt_format)
+        chatbot = Chatbot(opt.model_name, opt.tokenizer_name, device, opt.prompt_format)
+        # initialize the twitch client
+        client = TwitchClient()
+        client.connect_to_channel() # connect to the channel
     except Exception as e:
         print(e)
         return
@@ -102,6 +102,7 @@ def main():
             print('Delay', datetime.datetime.now() - start)
             print(f"User: {audio_text}")
             print(f"Chatbot: {response}")
+            client.send_message(response)
         else:
             print("Skipping...")
 
