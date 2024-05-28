@@ -26,7 +26,7 @@ class AbstractChatbot(ABC):
         if format == 'llama':
             return '<s> {}'
         elif format == 'mistral':
-            return '<s>[INST] {} [/INST'
+            return '<s>[INST] {} [/INST]'
         elif format == 'custom':
             return format
         # assume no format is given
@@ -67,7 +67,7 @@ class AbstractChatbot(ABC):
             quantization_config=self._create_bnb_config(),
             device_map=self.device_map,
             low_cpu_mem_usage=True,
-            torch_dtype=torch.float16,
+            torch_dtype=torch.bfloat16,
         )
         model.config.use_cache = False
         model.config.pretraining_tp = 1
@@ -96,13 +96,11 @@ class AbstractChatbot(ABC):
     
     @abstractmethod
     def format_output(self, input, output):
-        self._logger.info(">>> Formatting output")
         # remove the input from the output
         output = output.replace(input, '')
         # remove the punctuation that is unnecessary
         output = output.replace(':', ',').replace(';', ',')
         output = re.sub(r'[{}()\[\]]', '', output)
-        self._logger.info("Output formatted <<<")
         return output.strip()
     
     @abstractmethod
@@ -141,22 +139,34 @@ class Chatbot(AbstractChatbot):
     def generate(self, prompt):
         # format the prompt
         prompt_f = self.format_prompt(prompt)
-        
+
         result = self.pipe(
             prompt_f,
             do_sample=True,
             temperature=0.9,
             top_p=0.8,
             top_k=10,
-            max_new_tokens=300,
-            num_return_sequences=1,
+            max_new_tokens=64,
+            num_return_sequences=3,
             no_repeat_ngram_size=2,
         )
 
-        output = self.format_output(prompt_f, result[0]['generated_text'])
+        # result = self.pipe(
+        #     prompt_f,
+        #     do_sample=True,
+        #     temperature=1.0,
+        #     penalty_alpha=0.4,
+        #     top_k=5, 
+        #     max_new_tokens=100,
+        #     num_return_sequences=1,
+        #     no_repeat_ngram_size=2,
+        # )
+
+        output = [self.format_output(prompt_f, res['generated_text']) for res in result]
+        output = [out for out in output if out != '']
         
         # output is valid, return it
-        if output != '':
+        if len(output) > 0:
             return output
     
         # continue inferencing until a valid response is generated
@@ -201,14 +211,14 @@ class MergedChatbot(AbstractChatbot):
     def generate(self, prompt):
         # format the prompt
         prompt_f = self.format_prompt(prompt)
-        
+
         result = self.pipe(
             prompt_f,
             do_sample=True,
             temperature=0.9,
             top_p=0.8,
             top_k=10,
-            max_new_tokens=4000,
+            max_new_tokens=400,
             num_return_sequences=1,
             no_repeat_ngram_size=1,
         )
